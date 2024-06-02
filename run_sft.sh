@@ -25,7 +25,7 @@ CUDA_VISIBLE_DEVICES=0 torchrun --nproc_per_node 1 supervised_finetuning.py \
     --save_total_limit 13 \
     --gradient_accumulation_steps 1 \
     --preprocessing_num_workers 4 \
-    --output_dir outputs-sft-qwen-v1 \
+    --output_dir outputs-sft-llama3-8b-v1 \
     --overwrite_output_dir \
     --ddp_timeout 30000 \
     --logging_first_step True \
