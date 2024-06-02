@@ -1,4 +1,3 @@
-export HUGGING_FACE_HUB_TOKEN=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
 CUDA_VISIBLE_DEVICES=0,1 torchrun --nproc_per_node 2 supervised_finetuning.py \
     --model_type auto \
     --model_name_or_path meta-llama/Meta-Llama-3-8B \
