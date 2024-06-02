@@ -590,66 +590,39 @@ def main():
     max_length = script_args.model_max_length
 
     def preprocess_function(examples):
-        """
-        Preprocessing the datasets.
-            part of code modified from https://github.com/lm-sys/FastChat
-        """
         input_ids_list = []
         attention_mask_list = []
         targets_list = []
-        roles = ["human", "gpt"]
 
-        def get_dialog(examples):
-            for i, source in enumerate(examples['conversations']):
-                if len(source) < 2:
-                    continue
-                data_role = source[0].get("from", "")
-                if data_role not in roles or data_role != roles[0]:
-                    # Skip the first one if it is not from human
-                    source = source[1:]
-                if len(source) < 2:
-                    continue
-                messages = []
-                for j, sentence in enumerate(source):
-                    data_role = sentence.get("from", "")
-                    if data_role not in roles:
-                        logger.warning(f"unknown role: {data_role}, {i}. (ignored)")
-                        break
-                    if data_role == roles[j % 2]:
-                        messages.append(sentence["value"])
-                if len(messages) % 2 != 0:
-                    continue
-                # Convert the list to pairs of elements
-                history_messages = [[messages[k], messages[k + 1]] for k in range(0, len(messages), 2)]
-                yield prompt_template.get_dialog(history_messages)
+        for data in examples:
+            text = data["text"]
 
-        for dialog in get_dialog(examples):
-            input_ids, labels = [], []
+            # 使用特殊标记拆分对话轮次
+            dialog = text.split("<|start_header_id|>assistant<|end_header_id|>")
+            dialog = [d.split("<|start_header_id|>user<|end_header_id|>") for d in dialog]
+            dialog = [d for sub_list in dialog for d in sub_list if d.strip()]
 
-            for i in range(len(dialog) // 2):
-                source_ids = tokenizer.encode(text=dialog[2 * i], add_special_tokens=(i == 0))
-                target_ids = tokenizer.encode(text=dialog[2 * i + 1], add_special_tokens=False)
+            input_ids = []
+            labels = []
 
-                total_len = len(source_ids) + len(target_ids)
-                max_source_len = int(max_length * (len(source_ids) / total_len))
-                max_target_len = int(max_length * (len(target_ids) / total_len))
+            # 将第0段(system prompt)作为输入的开头
+            input_sequence = dialog[0]
+            source_ids = tokenizer.encode(input_sequence, add_special_tokens=True)
+            input_ids += source_ids
+            labels += [IGNORE_INDEX] * len(source_ids)
 
-                if len(source_ids) > max_source_len:
-                    source_ids = source_ids[:max_source_len]
-                if len(target_ids) > max_target_len - 1:  # eos token
-                    target_ids = target_ids[:max_target_len - 1]
-                if len(source_ids) > 0 and source_ids[0] == tokenizer.eos_token_id:
-                    source_ids = source_ids[1:]
-                if len(target_ids) > 0 and target_ids[-1] == tokenizer.eos_token_id:
-                    target_ids = target_ids[:-1]
-                if len(input_ids) + len(source_ids) + len(target_ids) + 1 > max_length:
-                    break
+            # 将第1段(user)、第3段(user)、第5段(user)...作为输入的后续部分
+            # 将第2段(assistant)、第4段(assistant)、第6段(assistant)...作为输出
+            for i in range(1, len(dialog), 2):
+                input_sequence = "<|start_header_id|>user<|end_header_id|>" + dialog[i]
+                source_ids = tokenizer.encode(input_sequence, add_special_tokens=True)
+                input_ids += source_ids
+                labels += [IGNORE_INDEX] * len(source_ids)
 
-                input_ids += source_ids + target_ids + [tokenizer.eos_token_id]  # add eos token for each turn
-                if script_args.train_on_inputs:
-                    labels += source_ids + target_ids + [tokenizer.eos_token_id]
-                else:
-                    labels += [IGNORE_INDEX] * len(source_ids) + target_ids + [tokenizer.eos_token_id]
+                output_sequence = "<|start_header_id|>assistant<|end_header_id|>" + dialog[i+1]
+                target_ids = tokenizer.encode(output_sequence, add_special_tokens=True)
+                input_ids += target_ids
+                labels += target_ids
 
             input_ids_list.append(input_ids)
             attention_mask_list.append([1] * len(input_ids))
