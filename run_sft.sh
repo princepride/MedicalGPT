@@ -1,13 +1,14 @@
+export HUGGING_FACE_HUB_TOKEN=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
 CUDA_VISIBLE_DEVICES=0,1 torchrun --nproc_per_node 2 supervised_finetuning.py \
     --model_type auto \
-    --model_name_or_path Qwen/Qwen1.5-0.5B-Chat \
+    --model_name_or_path meta-llama/Meta-Llama-3-8B \
     --train_file_dir ./data/finetune \
     --validation_file_dir ./data/finetune \
     --per_device_train_batch_size 4 \
     --per_device_eval_batch_size 4 \
     --do_train \
     --do_eval \
-    --template_name qwen \
+    --template_name llama3 \
     --use_peft True \
     --max_train_samples 1000 \
     --max_eval_samples 10 \
