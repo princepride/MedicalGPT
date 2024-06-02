@@ -593,9 +593,7 @@ def main():
         input_ids_list = []
         attention_mask_list = []
         targets_list = []
-
-        for data in examples:
-            text = data["text"]
+        for text in examples["text"]:
 
             # 使用特殊标记拆分对话轮次
             dialog = text.split("<|start_header_id|>assistant<|end_header_id|>")
@@ -610,9 +608,10 @@ def main():
             source_ids = tokenizer.encode(input_sequence, add_special_tokens=True)
             input_ids += source_ids
             labels += [IGNORE_INDEX] * len(source_ids)
-
             # 将第1段(user)、第3段(user)、第5段(user)...作为输入的后续部分
             # 将第2段(assistant)、第4段(assistant)、第6段(assistant)...作为输出
+            if len(dialog) % 2 == 0:
+                dialog = dialog[:-1]
             for i in range(1, len(dialog), 2):
                 input_sequence = "<|start_header_id|>user<|end_header_id|>" + dialog[i]
                 source_ids = tokenizer.encode(input_sequence, add_special_tokens=True)
