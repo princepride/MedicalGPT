@@ -605,7 +605,8 @@ def main():
 
             # 将第0段(system prompt)作为输入的开头
             input_sequence = dialog[0]
-            source_ids = tokenizer.encode(input_sequence, add_special_tokens=True)
+            # source_ids = tokenizer.encode(input_sequence, add_special_tokens=True)
+            source_ids = tokenizer.encode(input_sequence)
             input_ids += source_ids
             labels += [IGNORE_INDEX] * len(source_ids)
             # 将第1段(user)、第3段(user)、第5段(user)...作为输入的后续部分
